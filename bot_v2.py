@@ -15,8 +15,8 @@ from datetime import datetime
 # ─── CONFIG (set these as environment variables in Render) ────────────────────
 # Gmail credentials — use a Gmail App Password (NOT your real password)
 # Generate one at: myaccount.google.com/apppasswords
-GMAIL_ADDRESS      = os.environ["GMAIL_ADDRESS"]        # yourname@gmail.com
-GMAIL_APP_PASSWORD = os.environ["GMAIL_APP_PASSWORD"]   # 16-char app password
+GMAIL_ADDRESS      = os.environ["GMAIL_ADDRESS"]        # mabgar1@gmail.com
+GMAIL_APP_PASSWORD = os.environ["GMAIL_APP_PASSWORD"]   # ppvv lgzo irnj kedb
 
 # Your Verizon phone number — digits only, no dashes or +1
 # e.g. if your number is (516) 690-0512, enter: 5166900512
