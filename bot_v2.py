@@ -73,6 +73,7 @@ def _load_kalshi_key():
     if not KALSHI_PRIVATE_KEY:
         return None
     try:
+        # Handle both real newlines and literal \n from env vars
         pem = KALSHI_PRIVATE_KEY.replace("\\n", "\n").encode()
         return serialization.load_pem_private_key(pem, password=None,
                                                    backend=default_backend())
@@ -82,24 +83,33 @@ def _load_kalshi_key():
 
 _kalshi_key = None
 
+def _sign_pss(private_key, text: str) -> str:
+    """Sign text using RSA-PSS exactly as Kalshi docs specify."""
+    message = text.encode("utf-8")
+    signature = private_key.sign(
+        message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.DIGEST_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return base64.b64encode(signature).decode("utf-8")
+
 def _kalshi_headers(method: str, path: str) -> dict:
     global _kalshi_key
     if _kalshi_key is None:
         _kalshi_key = _load_kalshi_key()
     if _kalshi_key is None:
         return {}
-    ts_ms  = str(int(time.time() * 1000))
-    # Kalshi signs: timestamp + method + path (no query params)
+    ts_ms      = str(int(time.time() * 1000))
     clean_path = path.split("?")[0]
-    msg    = (ts_ms + method.upper() + clean_path).encode()
-    sig    = _kalshi_key.sign(msg, padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())
+    msg_string = ts_ms + method.upper() + clean_path
+    sig        = _sign_pss(_kalshi_key, msg_string)
     return {
         "KALSHI-ACCESS-KEY":       KALSHI_KEY_ID,
+        "KALSHI-ACCESS-SIGNATURE": sig,
         "KALSHI-ACCESS-TIMESTAMP": ts_ms,
-        "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
-        "Content-Type":            "application/json",
     }
 
 def fetch_kalshi():
