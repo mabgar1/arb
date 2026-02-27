@@ -89,16 +89,17 @@ def _kalshi_headers(method: str, path: str) -> dict:
     if _kalshi_key is None:
         return {}
     ts_ms  = str(int(time.time() * 1000))
-    # Strip query params from path before signing
+    # Kalshi signs: timestamp + method + path (no query params)
     clean_path = path.split("?")[0]
     msg    = (ts_ms + method.upper() + clean_path).encode()
     sig    = _kalshi_key.sign(msg, padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.DIGEST_LENGTH), hashes.SHA256())
+                salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())
     return {
         "KALSHI-ACCESS-KEY":       KALSHI_KEY_ID,
         "KALSHI-ACCESS-TIMESTAMP": ts_ms,
         "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
+        "Content-Type":            "application/json",
     }
 
 def fetch_kalshi():
