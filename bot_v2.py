@@ -385,47 +385,39 @@ BANKROLL_TIERS = [50, 100, 250, 500, 1000]
 
 def format_sms(arb: dict) -> str:
     """
-    Build an SMS with a full stake breakdown table for each bankroll tier.
-    Also shows the implied margin (guaranteed % profit).
+    Concise SMS alert — stays under 320 chars (2 segments) so carriers don't block it.
+    Full stake breakdown for $100 and $500 only. User can calculate others from the %.
     """
     outcomes = arb.get("outcomes", [])
+    pct      = arb["profit_pct"]
+    event    = arb["event"][:40]
 
-    lines = [
-        f"⚡ ARB — {arb['profit_pct']:.2f}% guaranteed",
-        f"📋 {arb['event'][:55]}",
-        "",
-    ]
-
-    # Show where to bet each side
+    # Build bet instructions
     if outcomes:
-        for o in outcomes:
-            lines.append(f"  {o['label']:12s} → {o['book']:12s} @ {o['price']:.3f}")
+        legs = " | ".join(f"{o['label']} on {o['book']} @{o['price']:.2f}" for o in outcomes)
+        res100 = calc_stakes(outcomes, 100)
+        res500 = calc_stakes(outcomes, 500)
+        stakes100 = " + ".join(f"${s['stake']:.0f}" for s in res100["stakes"])
+        stakes500 = " + ".join(f"${s['stake']:.0f}" for s in res500["stakes"])
+        profit100 = res100["profit"]
+        profit500 = res500["profit"]
     else:
-        lines.append(f"  {arb.get('strategy','')[:80]}")
+        legs      = arb.get("strategy", "")[:80]
+        profit100 = 100 * pct / 100
+        profit500 = 500 * pct / 100
+        stakes100 = f"${50 * pct / 100:.0f}+${50 * pct / 100:.0f}"
+        stakes500 = "—"
 
-    lines.append("")
-    lines.append("💰 STAKE BREAKDOWN")
-    lines.append(f"{'Bankroll':>9} | {'Stakes':30} | Profit")
-    lines.append("─" * 54)
+    msg = (
+        f"ARB +{pct:.2f}% | {event}\n"
+        f"{legs}\n"
+        f"$100 -> {stakes100} = +${profit100:.2f}\n"
+        f"$500 -> {stakes500} = +${profit500:.2f}\n"
+        f"{datetime.now().strftime('%H:%M')}"
+    )
 
-    for br in BANKROLL_TIERS:
-        if outcomes:
-            res = calc_stakes(outcomes, br)
-            stakes_str = " + ".join(f"${s['stake']:.2f}" for s in res["stakes"])
-            profit_str = f"+${res['profit']:.2f}"
-        else:
-            # Fallback for sportsbook arbs that pass raw stake values
-            stake_a = arb.get("stake_a", 50) * br / 100
-            stake_b = arb.get("stake_b", 50) * br / 100
-            profit_val = br * arb["profit_pct"] / 100
-            stakes_str = f"${stake_a:.2f} + ${stake_b:.2f}"
-            profit_str = f"+${profit_val:.2f}"
-
-        lines.append(f"  ${br:>6} | {stakes_str:<30} | {profit_str}")
-
-    lines.append("")
-    lines.append(f"🕒 {datetime.now().strftime('%H:%M:%S')}")
-    return "\n".join(lines)
+    # Hard cap at 300 chars to stay within 2 SMS segments
+    return msg[:300]
 
 # ─── DEDUP ────────────────────────────────────────────────────────────────────
 # Store arb key → timestamp of last alert, so same arb doesn't re-alert for 4 hours
