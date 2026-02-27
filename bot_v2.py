@@ -320,9 +320,23 @@ def run_scan():
         log.info("No new arbs this scan.")
     log.info(f"═══ Done. Next in {SCAN_INTERVAL_SEC}s ═══\n")
 
+def send_test_alert():
+    """Sends a sample alert so you can see exactly what real arb texts look like."""
+    fake_arb = {
+        "event": "Lakers vs Warriors (EXAMPLE)",
+        "profit_pct": 1.87,
+        "outcomes": [
+            {"label": "Lakers",   "book": "draftkings", "price": 2.10},
+            {"label": "Warriors", "book": "pinnacle",   "price": 2.05},
+        ],
+    }
+    send_sms("** EXAMPLE ARB ALERT **\n" + format_sms(fake_arb))
+    log.info("Test alert sent.")
+
 def main():
     log.info("ArbScanner starting up...")
     send_sms("ArbScanner live! Texts incoming when arbs found.")
+    send_test_alert()
     while True:
         try:
             run_scan()
