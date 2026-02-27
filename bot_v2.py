@@ -117,13 +117,20 @@ def fetch_kalshi():
         log.warning("No Kalshi credentials — skipping")
         return []
     try:
+        # Debug: confirm key is loading
+        key = _load_kalshi_key()
+        if key is None:
+            log.error("Kalshi: private key failed to load")
+            return []
+        log.info(f"Kalshi: key loaded OK, key_id={KALSHI_KEY_ID[:8]}...")
         path = "/trade-api/v2/markets"
         hdrs = _kalshi_headers("GET", path)
-        if not hdrs:
-            return []
+        log.info(f"Kalshi headers: KEY={hdrs.get('KALSHI-ACCESS-KEY','?')[:8]}... TS={hdrs.get('KALSHI-ACCESS-TIMESTAMP','?')}")
         resp = requests.get(KALSHI_BASE + "/markets", headers=hdrs, timeout=10,
                             params={"limit":100,"status":"open"})
-        resp.raise_for_status()
+        if resp.status_code != 200:
+            log.error(f"Kalshi {resp.status_code}: {resp.text[:300]}")
+            resp.raise_for_status()
         markets = resp.json().get("markets", [])
         results = []
         for m in markets:
