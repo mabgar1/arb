@@ -67,7 +67,8 @@ def format_sms(arb):
     )[:300]
 
 # ─── KALSHI (RSA-PSS signed requests) ─────────────────────────────────────────
-KALSHI_BASE = "https://trading-api.kalshi.com/trade-api/v2"
+KALSHI_BASE_TRADING   = "https://trading-api.kalshi.com/trade-api/v2"
+KALSHI_BASE_ELECTIONS = "https://api.elections.kalshi.com/trade-api/v2"
 
 def _load_kalshi_key():
     if not KALSHI_PRIVATE_KEY:
@@ -112,43 +113,43 @@ def _kalshi_headers(method: str, path: str) -> dict:
         "KALSHI-ACCESS-TIMESTAMP": ts_ms,
     }
 
+def _fetch_kalshi_from(base_url: str, label: str) -> list:
+    path = "/trade-api/v2/markets"
+    hdrs = _kalshi_headers("GET", path)
+    resp = requests.get(base_url + "/markets", headers=hdrs, timeout=10,
+                        params={"limit":100,"status":"open"})
+    resp.raise_for_status()
+    markets = resp.json().get("markets", [])
+    results = []
+    for m in markets:
+        yes = m.get("yes_ask")
+        no  = m.get("no_ask")
+        if yes is None or no is None:
+            continue
+        results.append({
+            "source":    f"Kalshi({label})",
+            "event":     m.get("title", "?"),
+            "yes_price": yes / 100,
+            "no_price":  no  / 100,
+        })
+    return results
+
 def fetch_kalshi():
     if not KALSHI_KEY_ID or not KALSHI_PRIVATE_KEY:
         log.warning("No Kalshi credentials — skipping")
         return []
-    try:
-        # Debug: confirm key is loading
-        key = _load_kalshi_key()
-        if key is None:
-            log.error("Kalshi: private key failed to load")
-            return []
-        log.info(f"Kalshi: key loaded OK, key_id={KALSHI_KEY_ID[:8]}...")
-        path = "/trade-api/v2/markets"
-        hdrs = _kalshi_headers("GET", path)
-        log.info(f"Kalshi headers: KEY={hdrs.get('KALSHI-ACCESS-KEY','?')[:8]}... TS={hdrs.get('KALSHI-ACCESS-TIMESTAMP','?')}")
-        resp = requests.get(KALSHI_BASE + "/markets", headers=hdrs, timeout=10,
-                            params={"limit":100,"status":"open"})
-        if resp.status_code != 200:
-            log.error(f"Kalshi {resp.status_code}: {resp.text[:300]}")
-            resp.raise_for_status()
-        markets = resp.json().get("markets", [])
-        results = []
-        for m in markets:
-            yes = m.get("yes_ask")
-            no  = m.get("no_ask")
-            if yes is None or no is None:
-                continue
-            results.append({
-                "source":    "Kalshi",
-                "event":     m.get("title", "?"),
-                "yes_price": yes / 100,
-                "no_price":  no  / 100,
-            })
-        log.info(f"Kalshi: {len(results)} markets")
-        return results
-    except Exception as e:
-        log.error(f"Kalshi error: {e}")
+    if _load_kalshi_key() is None:
+        log.error("Kalshi: private key failed to load")
         return []
+    results = []
+    for base, label in [(KALSHI_BASE_TRADING, "trading"), (KALSHI_BASE_ELECTIONS, "elections")]:
+        try:
+            markets = _fetch_kalshi_from(base, label)
+            log.info(f"Kalshi {label}: {len(markets)} markets")
+            results.extend(markets)
+        except Exception as e:
+            log.error(f"Kalshi {label} error: {e}")
+    return results
 
 # ─── POLYMARKET ───────────────────────────────────────────────────────────────
 def fetch_polymarket():
