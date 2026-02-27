@@ -171,48 +171,49 @@ def fetch_sportsbook_markets():
             resp.raise_for_status()
             games = resp.json()
             time.sleep(2)  # avoid rate limiting between sport requests
+
             for game in games:
                 home = game.get("home_team", "")
                 away = game.get("away_team", "")
-                bookmaker_data = {}
+
+                # Collect ALL outcomes listed per book, preserving completeness
+                bookmaker_data = {}   # {book: {team: decimal_odds}}
+                all_outcome_names = set()
+
                 for bm in game.get("bookmakers", []):
                     book_name = bm["key"]
                     for market in bm.get("markets", []):
                         if market["key"] != "h2h":
                             continue
+                        book_outcomes = {}
                         for outcome in market.get("outcomes", []):
-                            team = outcome["name"]
+                            team  = outcome["name"]
                             price = american_to_decimal(outcome["price"])
-                            if book_name not in bookmaker_data:
-                                bookmaker_data[book_name] = {}
-                            bookmaker_data[book_name][team] = price
+                            book_outcomes[team] = price
+                            all_outcome_names.add(team)
+                        if book_outcomes:
+                            bookmaker_data[book_name] = book_outcomes
 
-                # Find best odds for each team across all books
-                teams = [home, away]
-                best = {}
-                for team in teams:
-                    best_dec = 0
-                    best_book = ""
-                    for book, odds in bookmaker_data.items():
-                        if team in odds and odds[team] > best_dec:
-                            best_dec = odds[team]
-                            best_book = book
-                    if best_dec > 0:
-                        best[team] = {"decimal": best_dec, "book": best_book,
-                                      "implied_prob": decimal_to_prob(best_dec)}
+                # Determine canonical team list for this game
+                # For soccer this may include "Draw"; for others just 2 teams
+                all_teams = sorted(all_outcome_names)
 
-                if len(best) == 2:
-                    t1, t2 = teams
-                    results.append({
-                        "source": "Sportsbooks",
-                        "event": f"{away} @ {home}",
-                        "sport": sport,
-                        "outcomes": best,
-                        "market_id": game.get("id", ""),
-                        "commence_time": game.get("commence_time", ""),
-                    })
+                if len(all_teams) < 2 or not bookmaker_data:
+                    continue
+
+                results.append({
+                    "source":           "Sportsbooks",
+                    "event":            f"{away} @ {home}",
+                    "sport":            sport,
+                    "market_id":        game.get("id", ""),
+                    "commence_time":    game.get("commence_time", ""),
+                    "_all_teams":       all_teams,
+                    "_bookmaker_data":  bookmaker_data,
+                })
+
         except Exception as e:
             log.error(f"Odds API error ({sport}): {e}")
+
     log.info(f"Sportsbooks: fetched {len(results)} games")
     return results
 
@@ -266,26 +267,92 @@ def find_arbs_prediction_markets(markets_a: list, markets_b: list) -> list:
     return arbs
 
 def find_arbs_sportsbooks(games: list) -> list:
+    """
+    Proper arb detection for sportsbooks.
+
+    Key rules:
+    1. Every outcome in a game must come from a book that listed ALL outcomes
+       for that game. If Book A only listed Home/Away but not Draw, we can't
+       use it — mixing partial markets creates fake arbs.
+    2. We pick the best decimal odds for each outcome across all valid books,
+       but only from books where that book covered every outcome in the game.
+    3. Cap realistic arbs at 15% — anything higher is a data error.
+    """
     arbs = []
+
     for game in games:
-        outcomes = game["outcomes"]
-        teams = list(outcomes.keys())
-        if len(teams) < 2:
+        raw_bm_data = game.get("_bookmaker_data", {})  # {book: {team: decimal}}
+        teams = game.get("_all_teams", [])
+
+        if not raw_bm_data or not teams:
             continue
-        implied_sum = sum(o["implied_prob"] for o in outcomes.values())
-        if implied_sum < 1:
-            profit = (1/implied_sum - 1) * 100
-            if profit > MIN_PROFIT_PCT:
-                strategy_parts = [
-                    f"{team} on {outcomes[team]['book']} @ {outcomes[team]['decimal']:.2f}"
-                    for team in teams
-                ]
-                arbs.append({
-                    "event": game["event"],
-                    "strategy": "  +  ".join(strategy_parts),
-                    "profit_pct": profit,
-                    "implied_sum": implied_sum,
-                })
+
+        # Only keep books that have odds for ALL teams in this game
+        valid_books = {
+            book: odds for book, odds in raw_bm_data.items()
+            if all(team in odds for team in teams)
+        }
+
+        if not valid_books:
+            continue
+
+        # Best odds per team, only from valid (complete) books
+        best = {}
+        for team in teams:
+            best_dec  = 0
+            best_book = ""
+            for book, odds in valid_books.items():
+                if odds[team] > best_dec:
+                    best_dec  = odds[team]
+                    best_book = book
+            if best_dec > 0:
+                best[team] = {"decimal": best_dec, "book": best_book,
+                              "implied_prob": 1 / best_dec}
+
+        if len(best) != len(teams):
+            continue  # couldn't find odds for every team
+
+        implied_sum = sum(v["implied_prob"] for v in best.values())
+
+        if implied_sum >= 1:
+            continue  # no arb
+
+        profit = (1 / implied_sum - 1) * 100
+
+        # Sanity check: real arbs are almost never above 10-15%
+        # Anything higher is bad data (mismatched markets, stale odds, etc.)
+        if profit > 15:
+            log.debug(f"Skipping suspicious arb ({profit:.1f}%) for {game['event']}")
+            continue
+
+        if profit <= MIN_PROFIT_PCT:
+            continue
+
+        # Build outcomes list for stake calculator
+        payout_per_100 = 100 / implied_sum
+        outcome_list = []
+        for team in teams:
+            stake = (best[team]["implied_prob"] / implied_sum) * 100
+            outcome_list.append({
+                "label": team,
+                "book":  best[team]["book"],
+                "price": best[team]["decimal"],
+                "stake": stake,
+            })
+
+        strategy_parts = [
+            f"{o['label']} on {o['book']} @ {o['price']:.2f}"
+            for o in outcome_list
+        ]
+
+        arbs.append({
+            "event":      game["event"],
+            "strategy":   "  +  ".join(strategy_parts),
+            "profit_pct": profit,
+            "outcomes":   outcome_list,
+            "implied_sum": implied_sum,
+        })
+
     return arbs
 
 # ─── STAKE CALCULATOR ─────────────────────────────────────────────────────────
@@ -361,10 +428,22 @@ def format_sms(arb: dict) -> str:
     return "\n".join(lines)
 
 # ─── DEDUP ────────────────────────────────────────────────────────────────────
-alerted_keys: set = set()
+# Store arb key → timestamp of last alert, so same arb doesn't re-alert for 4 hours
+alerted_keys: dict = {}
+ALERT_COOLDOWN_SEC = 4 * 3600  # 4 hours
 
 def arb_key(arb: dict) -> str:
-    return f"{arb['event'][:40]}|{arb['strategy'][:40]}"
+    # Key on event name + the books involved so lineup changes retrigger
+    books = "|".join(sorted(o["book"] for o in arb.get("outcomes", [])))
+    return f"{arb['event'][:40]}|{books}"
+
+def is_new_arb(arb: dict) -> bool:
+    key = arb_key(arb)
+    last = alerted_keys.get(key, 0)
+    if time.time() - last > ALERT_COOLDOWN_SEC:
+        alerted_keys[key] = time.time()
+        return True
+    return False
 
 # ─── MAIN LOOP ────────────────────────────────────────────────────────────────
 
@@ -391,21 +470,17 @@ def run_scan():
     # Sort by profit
     all_arbs.sort(key=lambda x: x["profit_pct"], reverse=True)
 
-    # Alert on new ones
-    new_arbs = []
-    for arb in all_arbs:
-        key = arb_key(arb)
-        if key not in alerted_keys:
-            alerted_keys.add(key)
-            new_arbs.append(arb)
+    # Alert on new ones only (respects 4hr cooldown)
+    new_arbs = [a for a in all_arbs if is_new_arb(a)]
 
     if new_arbs:
-        log.info(f"📲 Sending {len(new_arbs)} SMS alert(s)")
-        # Send top 3 so you don't get spammed
+        # Send top 3 individually with full breakdown
+        log.info(f"📲 Sending {min(len(new_arbs), 3)} SMS alert(s) ({len(new_arbs)} total new arbs)")
         for arb in new_arbs[:3]:
             send_sms(format_sms(arb))
+            time.sleep(1)  # small gap between sends
         if len(new_arbs) > 3:
-            send_sms(f"⚡ +{len(new_arbs)-3} more arbs found this scan. Check dashboard.")
+            send_sms(f"⚡ +{len(new_arbs)-3} more arbs this scan (showing top 3). Best: +{new_arbs[0]['profit_pct']:.2f}%")
     else:
         log.info("No new arbs this scan.")
 
