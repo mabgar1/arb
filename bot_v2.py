@@ -17,7 +17,8 @@ TWILIO_AUTH_TOKEN  = os.environ["TWILIO_AUTH_TOKEN"]
 TWILIO_FROM_NUMBER = os.environ["TWILIO_FROM_NUMBER"]   # e.g. +15551234567
 YOUR_PHONE_NUMBER  = os.environ["YOUR_PHONE_NUMBER"]    # e.g. +15559876543
 
-KALSHI_API_KEY     = os.environ.get("KALSHI_API_KEY", "")       # optional at first
+KALSHI_EMAIL       = os.environ.get("KALSHI_EMAIL", "")
+KALSHI_PASSWORD    = os.environ.get("KALSHI_PASSWORD", "")
 ODDS_API_KEY       = os.environ.get("ODDS_API_KEY", "")         # from the-odds-api.com
 
 MIN_PROFIT_PCT     = float(os.environ.get("MIN_PROFIT_PCT", "0"))  # 0 = any positive EV
@@ -48,13 +49,33 @@ def send_sms(message: str):
 # ─── KALSHI ──────────────────────────────────────────────────────────────────
 KALSHI_BASE = "https://trading-api.kalshi.com/trade-api/v2"
 
+def get_kalshi_token() -> str:
+    """Log in with email+password and return a session token."""
+    resp = requests.post(
+        f"{KALSHI_BASE}/login",
+        json={"email": KALSHI_EMAIL, "password": KALSHI_PASSWORD},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json().get("token", "")
+
+_kalshi_token = ""
+_kalshi_token_ts = 0
+
 def fetch_kalshi_markets():
     """Returns list of {event, yes_price, no_price, market_id}"""
-    if not KALSHI_API_KEY:
-        log.warning("No Kalshi API key — skipping Kalshi")
+    global _kalshi_token, _kalshi_token_ts
+    if not KALSHI_EMAIL or not KALSHI_PASSWORD:
+        log.warning("No Kalshi credentials — skipping Kalshi")
         return []
     try:
-        headers = {"Authorization": f"Bearer {KALSHI_API_KEY}"}
+        # Re-login if token is older than 20 minutes
+        if time.time() - _kalshi_token_ts > 1200:
+            _kalshi_token = get_kalshi_token()
+            _kalshi_token_ts = time.time()
+            log.info("Kalshi: obtained fresh session token")
+
+        headers = {"Authorization": f"Bearer {_kalshi_token}"}
         resp = requests.get(f"{KALSHI_BASE}/markets", headers=headers, timeout=10,
                             params={"limit": 100, "status": "open"})
         resp.raise_for_status()
@@ -149,6 +170,7 @@ def fetch_sportsbook_markets():
             )
             resp.raise_for_status()
             games = resp.json()
+            time.sleep(2)  # avoid rate limiting between sport requests
             for game in games:
                 home = game.get("home_team", "")
                 away = game.get("away_team", "")
