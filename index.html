@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>ArbScanner NY</title>
+<style>
+:root{--bg:#000;--surface:#0a0a0a;--border:#1c1c1e;--green:#30d158;--yellow:#ffd60a;--blue:#0a84ff;--red:#ff453a;--purple:#bf5af2;--muted:#636366;--text:#f5f5f7;--mono:'DM Mono','Courier New',monospace;--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top))}
+.logo{font-size:14px;letter-spacing:3px;color:var(--green);font-weight:600}
+.logo span{color:var(--muted);font-weight:400}
+.status-row{display:flex;gap:10px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}.dot.warn{background:var(--yellow)}.dot.err{background:var(--red)}
+.dot-label{font-size:9px;color:var(--muted);letter-spacing:1px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.scan-bar{height:2px;background:var(--border);flex-shrink:0}
+.scan-fill{height:100%;background:var(--green);transition:width 1s linear;width:0%}
+.sleep-banner{display:none;padding:10px 16px;background:rgba(99,99,102,.12);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);letter-spacing:1.5px;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
+.filter-bar{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 14px;border:1px solid var(--border);border-radius:20px;font-size:10px;letter-spacing:1px;color:var(--muted);background:none;font-family:var(--mono);cursor:pointer;white-space:nowrap;transition:all .15s}
+.chip.active{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
+.screen{display:none;flex:1;overflow-y:auto;overscroll-behavior:contain}
+.screen.active{display:block}
+.arb-list{padding:12px;display:flex;flex-direction:column;gap:10px}
+.arb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.arb-card.hot{border-color:rgba(48,209,88,.4)}.arb-card.warm{border-color:rgba(255,214,10,.3)}.arb-card.kalshi{border-color:rgba(191,90,242,.3)}
+.arb-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;gap:10px}
+.arb-profit{font-size:22px;font-weight:700;color:var(--green);flex-shrink:0}
+.arb-profit.warm{color:var(--yellow)}.arb-profit.purple{color:var(--purple)}
+.arb-meta{flex:1;min-width:0}
+.arb-event{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arb-market{font-size:10px;color:var(--muted);letter-spacing:.5px;margin-top:3px}
+.arb-tag{font-size:9px;padding:3px 8px;border-radius:10px;letter-spacing:1px;flex-shrink:0}
+.tag-sport{background:rgba(10,132,255,.15);color:var(--blue);border:1px solid rgba(10,132,255,.3)}
+.tag-kalshi{background:rgba(191,90,242,.15);color:var(--purple);border:1px solid rgba(191,90,242,.3)}
+.tag-prop{background:rgba(255,214,10,.12);color:var(--yellow);border:1px solid rgba(255,214,10,.3)}
+.arb-detail{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.arb-detail.open{display:block}
+.action-box{margin-top:12px;background:rgba(48,209,88,.05);border:1px solid rgba(48,209,88,.15);border-radius:8px;padding:12px}
+.action-title{font-size:9px;letter-spacing:2px;color:var(--green);margin-bottom:10px}
+.leg{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.leg-num{width:20px;height:20px;border-radius:50%;background:var(--green);color:#000;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.leg-body{flex:1}.leg-book{font-size:12px;font-weight:600;color:var(--text)}.leg-detail{font-size:11px;color:var(--muted);margin-top:2px}.leg-odds{font-size:11px;color:var(--green);margin-top:2px}
+.profit-line{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(48,209,88,.15);font-size:11px;color:var(--muted)}
+.profit-line strong{color:var(--green);font-size:14px}
+.bankroll-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.bankroll-row input[type=range]{flex:1;accent-color:var(--green)}
+.bankroll-val{font-size:12px;color:var(--green);min-width:50px;text-align:right}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;color:var(--muted);text-align:center}
+.empty-icon{font-size:40px;opacity:.3}.empty-text{font-size:11px;letter-spacing:1px}
+.log-list{padding:8px 12px;display:flex;flex-direction:column;gap:2px}
+.log-entry{display:flex;gap:8px;padding:5px 8px;border-radius:6px;font-size:10px;line-height:1.5}
+.log-entry.info{color:var(--muted)}.log-entry.good{color:var(--green);background:rgba(48,209,88,.05)}.log-entry.warn{color:var(--yellow);background:rgba(255,214,10,.05)}.log-entry.err{color:var(--red);background:rgba(255,69,58,.05)}
+.log-time{flex-shrink:0;opacity:.5}
+.settings-section{font-size:9px;letter-spacing:2px;color:var(--muted);padding:20px 16px 8px;text-transform:uppercase}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px}
+.settings-label{font-size:13px;color:var(--text)}.settings-sublabel{font-size:10px;color:var(--muted);margin-top:2px}
+.settings-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;min-width:80px}
+.save-btn{width:calc(100% - 32px);margin:12px 16px;padding:14px;background:var(--green);color:#000;border:none;border-radius:10px;font-family:var(--mono);font-size:12px;letter-spacing:2px;font-weight:700;cursor:pointer}
+.info-box{margin:0 16px 4px;padding:12px;border-radius:8px;font-size:10px;line-height:1.7}
+.info-box.blue{background:rgba(10,132,255,.06);color:var(--blue);border:1px solid rgba(10,132,255,.2)}
+.info-box.yellow{background:rgba(255,214,10,.06);color:var(--yellow);border:1px solid rgba(255,214,10,.2)}
+.info-box.purple{background:rgba(191,90,242,.06);color:var(--purple);border:1px solid rgba(191,90,242,.2)}
+.bottom-nav{display:flex;background:var(--bg);border-top:1px solid var(--border);padding-bottom:var(--safe-bottom);flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;background:none;border:none;font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--muted);cursor:pointer;gap:4px;transition:color .15s}
+.nav-btn svg{width:20px;height:20px}.nav-btn.active{color:var(--green)}.nav-btn.sleep-on{color:var(--yellow)!important}
+.fab{position:fixed;bottom:calc(var(--safe-bottom) + 76px);right:16px;width:50px;height:50px;border-radius:50%;background:var(--green);color:#000;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(48,209,88,.4);transition:opacity .2s,transform .1s;z-index:10}
+.fab:active{transform:scale(.93)}.fab.spinning{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:max(60px,env(safe-area-inset-top,60px));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.12);color:var(--text);backdrop-filter:blur(20px);padding:10px 20px;border-radius:20px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">ARB<span>SCANNER · NY</span></div>
+  <div class="status-row">
+    <div class="dot" id="dot-bot"></div>
+    <div class="dot-label" id="stat-next">--</div>
+  </div>
+</div>
+<div class="scan-bar"><div class="scan-fill" id="scan-fill"></div></div>
+<div class="sleep-banner" id="sleep-banner">🌙 scanning paused</div>
+<div class="filter-bar" id="filter-bar">
+  <button class="chip active" onclick="setFilter('all',this)">ALL</button>
+  <button class="chip" onclick="setFilter('ml',this)">MONEYLINE</button>
+  <button class="chip" onclick="setFilter('spread',this)">SPREAD</button>
+  <button class="chip" onclick="setFilter('total',this)">TOTAL</button>
+  <button class="chip" onclick="setFilter('prop',this)">PROPS</button>
+  <button class="chip" onclick="setFilter('kalshi',this)">KALSHI</button>
+</div>
+<div class="screen active" id="screen-opps">
+  <div class="arb-list" id="arb-list">
+    <div class="empty"><div class="empty-icon">📡</div><div class="empty-text">SCANNING NY BOOKS + KALSHI<br>DraftKings · FanDuel · BetMGM<br>Caesars · BetRivers · PointsBet</div></div>
+  </div>
+</div>
+<div class="screen" id="screen-log"><div class="log-list" id="log-list"></div></div>
+<div class="screen" id="screen-settings">
+  <div class="settings-section">Bot Connection</div>
+  <div class="info-box blue" style="margin-top:8px;">Connect your Render bot so SLEEP syncs across iPhone and laptop instantly.</div>
+  <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+    <div class="settings-label">Render Bot URL</div>
+    <div class="settings-sublabel">e.g. https://arb-ny.onrender.com</div>
+    <input class="settings-input" id="set-bot-url" placeholder="https://your-bot.onrender.com" style="width:100%;font-size:11px;">
+  </div>
+  <button class="save-btn" onclick="saveBotUrl()">CONNECT BOT</button>
+  <div class="settings-section">The Odds API</div>
+  <div class="info-box yellow">Free tier: 500 requests/month · sign up at the-odds-api.com<br>~23 full scans per month · upgrade for more</div>
+  <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+    <div class="settings-label">Odds API Key</div>
+    <input class="settings-input" id="set-tr-key" placeholder="paste key here" style="width:100%;font-size:11px;">
+  </div>
+  <div class="settings-section">Kalshi</div>
+  <div class="info-box purple">CFTC-regulated · fully legal in New York<br>Finds YES/NO arbs on prediction markets<br>Configure KALSHI_KEY_ID + KALSHI_PRIVATE_KEY in Render</div>
+  <div class="settings-section">Scan Settings</div>
+  <div class="settings-row">
+    <div><div class="settings-label">Min Profit %</div><div class="settings-sublabel">ignore arbs below this</div></div>
+    <input class="settings-input" id="set-min-profit" type="number" value="0.5" step="0.1" min="0" style="width:70px;">
+  </div>
+  <div class="settings-row">
+    <div><div class="settings-label">Bankroll ($)</div><div class="settings-sublabel">default stake size</div></div>
+    <input class="settings-input" id="set-bankroll" type="number" value="500" step="50" min="50" style="width:90px;">
+  </div>
+  <button class="save-btn" onclick="saveSettings()">SAVE SETTINGS</button>
+  <div class="settings-section">NY Licensed Books + Kalshi</div>
+  <div class="info-box blue">Sportsbooks: DraftKings · FanDuel · BetMGM · Caesars · BetRivers · PointsBet · Resorts World · Bally Bet<br><br>Prediction: Kalshi (CFTC · NY legal)<br>Markets: Moneyline · Spread · Total O/U with exact line</div>
+  <div style="height:20px;"></div>
+</div>
+<button class="fab" id="fab" onclick="manualScan()">&#x21BA;</button>
+<div class="toast" id="toast"></div>
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-opps" onclick="showScreen('opps')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13l4-4 4 4 4-6 4 3"/></svg>OPPS
+  </button>
+  <button class="nav-btn" id="nav-log" onclick="showScreen('log')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 10h16M4 14h10M4 18h6"/></svg>LOG
+  </button>
+  <button class="nav-btn" id="nav-sleep" onclick="toggleSleep()">
+    <svg id="sleep-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>SLEEP
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showScreen('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>SETTINGS
+  </button>
+</div>
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+let settings = loadSettings();
+let isSleeping = false, botUrl = localStorage.getItem('botUrl')||'';
+let syncTimer = null, countdownTimer = null, countdown = 0;
+const SCAN_INTERVAL = 60;
+let currentFilter = 'all', allArbs = [], isScanning = false;
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────────
+function loadSettings() {
+  return {
+    oddsKey:   localStorage.getItem('oddsKey')   || '',
+    minProfit: parseFloat(localStorage.getItem('minProfit') || '0.5'),
+    bankroll:  parseFloat(localStorage.getItem('bankroll')  || '500'),
+  };
+}
+function saveSettings() {
+  settings.oddsKey   = document.getElementById('set-tr-key').value.trim();
+  settings.minProfit = parseFloat(document.getElementById('set-min-profit').value) || 0.5;
+  settings.bankroll  = parseFloat(document.getElementById('set-bankroll').value) || 500;
+  localStorage.setItem('oddsKey', settings.oddsKey);
+  localStorage.setItem('minProfit', settings.minProfit);
+  localStorage.setItem('bankroll', settings.bankroll);
+  toast('Settings saved'); showScreen('opps'); runScan();
+}
+function saveBotUrl() {
+  const url = document.getElementById('set-bot-url').value.trim().replace(/\/$/,'');
+  if (!url) { toast('Enter your Render URL'); return; }
+  botUrl = url; localStorage.setItem('botUrl', botUrl);
+  toast('Bot connected!'); addLog('Bot: '+botUrl, 'info');
+  startSyncPoll(); pullSleepState();
+}
+
+// ── SLEEP ─────────────────────────────────────────────────────────────────────
+function applySleepUI() {
+  const btn = document.getElementById('nav-sleep');
+  const svg = document.getElementById('sleep-svg');
+  const banner = document.getElementById('sleep-banner');
+  const fab = document.getElementById('fab');
+  if (isSleeping) {
+    btn.classList.add('sleep-on');
+    svg.style.fill='#ffd60a'; svg.style.stroke='#ffd60a';
+    banner.style.display='flex';
+    fab.style.opacity='0.25'; fab.style.pointerEvents='none';
+    document.getElementById('stat-next').textContent='OFF';
+    document.getElementById('scan-fill').style.width='0%';
+    if (countdownTimer) clearInterval(countdownTimer);
+  } else {
+    btn.classList.remove('sleep-on');
+    svg.style.fill='none'; svg.style.stroke='currentColor';
+    banner.style.display='none';
+    fab.style.opacity=''; fab.style.pointerEvents='';
+  }
+}
+async function toggleSleep() {
+  isSleeping = !isSleeping; applySleepUI();
+  if (isSleeping) { toast('🌙 Paused'); addLog('Paused','warn'); if(countdownTimer)clearInterval(countdownTimer); }
+  else { toast('▶ Resumed'); addLog('Resumed','info'); runScan(); }
+  if (botUrl) {
+    try { await fetch(botUrl+'/'+(isSleeping?'sleep':'wake'), {method:'POST'}); }
+    catch(e) { addLog('Bot sync error','warn'); }
+  }
+}
+async function pullSleepState() {
+  if (!botUrl) return;
+  try {
+    const r = await fetch(botUrl+'/status');
+    if (!r.ok) { document.getElementById('dot-bot').className='dot err'; return; }
+    const d = await r.json();
+    document.getElementById('dot-bot').className='dot live';
+    if (d.sleeping !== isSleeping) { isSleeping=d.sleeping; applySleepUI(); if(!isSleeping)runScan(); }
+  } catch(e) { document.getElementById('dot-bot').className='dot warn'; }
+}
+function startSyncPoll() {
+  if (syncTimer) clearInterval(syncTimer);
+  if (!botUrl) return;
+  syncTimer = setInterval(pullSleepState, 8000);
+}
+
+// ── THE ODDS API ─────────────────────────────────────────────────────────────
+// Free tier: 500 requests/month — enough for ~16 scans/day
+// NY-licensed books only
+const NY_BOOKS = ['draftkings','fanduel','betmgm','caesars','pointsbet','betrivers'];
+const ODDS_SPORTS = [
+  {key:'basketball_nba',      name:'NBA'},
+  {key:'americanfootball_nfl',name:'NFL'},
+  {key:'baseball_mlb',        name:'MLB'},
+  {key:'icehockey_nhl',       name:'NHL'},
+  {key:'basketball_ncaab',    name:'NCAAB'},
+  {key:'americanfootball_ncaaf',name:'NCAAF'},
+  {key:'mma_mixed_martial_arts',name:'MMA'},
+];
+const BOOK_DISPLAY = {
+  draftkings:'DraftKings', fanduel:'FanDuel', betmgm:'BetMGM',
+  caesars:'Caesars', pointsbet:'PointsBet', betrivers:'BetRivers'
+};
+
+async function fetchOddsSport(sportKey, market) {
+  if (!settings.oddsKey) return [];
+  const books = NY_BOOKS.join(',');
+  const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${settings.oddsKey}&regions=us&markets=${market}&bookmakers=${books}&oddsFormat=american`;
+  try {
+    const r = await fetch(url);
+    // Log remaining quota from headers
+    const remaining = r.headers.get('x-requests-remaining');
+    const used      = r.headers.get('x-requests-used');
+    if (remaining !== null) addLog(`Odds API: ${remaining} requests remaining (${used} used)`,'info');
+    if (r.status === 401) { addLog('Bad Odds API key — check Settings','err'); return []; }
+    if (r.status === 422) { addLog(`${sportKey} not available`,'info'); return []; }
+    if (!r.ok) { addLog(`Odds API error ${r.status}`,'warn'); return []; }
+    return await r.json();
+  } catch(e) {
+    addLog('Fetch error: '+e.message,'warn'); return [];
+  }
+}
+
+function parseOddsGames(games, market) {
+  // marketMap key: "EventName||MarketLabel"
+  const marketMap = {};
+
+  for (const game of games) {
+    const home = game.home_team;
+    const away = game.away_team;
+    const eventName = `${away} @ ${home}`;
+
+    for (const bm of game.bookmakers || []) {
+      const book = BOOK_DISPLAY[bm.key] || bm.key;
+
+      for (const mkt of bm.markets || []) {
+        if (mkt.key !== market) continue;
+
+        for (const outcome of mkt.outcomes || []) {
+          const name  = outcome.name;  // team name, "Over", or "Under"
+          const price = outcome.price; // American odds integer
+          const dec   = price > 0 ? (price/100)+1 : (100/Math.abs(price))+1;
+          if (dec <= 1) continue;
+
+          let label, outcomeName, type;
+
+          if (mkt.key === 'h2h') {
+            label = 'Moneyline';
+            outcomeName = name;
+            type = 'ml';
+          } else if (mkt.key === 'spreads') {
+            const point = outcome.point;
+            const sign  = point > 0 ? '+' : '';
+            label = `Spread: ${name} ${sign}${point}`;
+            outcomeName = `${name} ${sign}${point}`;
+            type = 'spread';
+          } else if (mkt.key === 'totals') {
+            const point = outcome.point;
+            // name is "Over" or "Under", point is the line e.g. 224.5
+            label = `Total ${point}`;
+            outcomeName = `${name} ${point}`; // e.g. "Over 224.5"
+            type = 'total';
+          }
+
+          const key = `${eventName}||${label}`;
+          if (!marketMap[key]) marketMap[key] = {event:eventName, label, type, outcomes:{}};
+          marketMap[key].outcomes[outcomeName] = marketMap[key].outcomes[outcomeName] || {};
+          // Keep best price per book per outcome
+          const existing = marketMap[key].outcomes[outcomeName][book] || 0;
+          if (dec > existing) marketMap[key].outcomes[outcomeName][book] = dec;
+        }
+      }
+    }
+  }
+  return Object.values(marketMap);
+}
+
+function detectArbs(markets) {
+  const arbs = [];
+  for (const mkt of markets) {
+    const outcomes = Object.entries(mkt.outcomes);
+    if (outcomes.length < 2) continue;
+    // Best price per outcome across all books
+    const best = outcomes.map(([name, books]) => {
+      const [bestBook, bestPrice] = Object.entries(books).reduce((a,b)=>b[1]>a[1]?b:a, ['',0]);
+      return {name, book:bestBook, price:bestPrice};
+    }).filter(o => o.price > 1);
+    if (best.length < 2) continue;
+    // REQUIRE different books — same book on both sides is not an arb
+    const uniqueBooks = new Set(best.map(l=>l.book));
+    if (uniqueBooks.size < 2) continue;
+    const impliedSum = best.reduce((s,o) => s + 1/o.price, 0);
+    if (impliedSum >= 1 || impliedSum <= 0) continue;
+    const profitPct = (1/impliedSum - 1) * 100;
+    if (profitPct < settings.minProfit) continue;
+    arbs.push({...mkt, profitPct, legs:best, impliedSum});
+  }
+  return arbs.sort((a,b) => b.profitPct - a.profitPct);
+}
+
+// ── SCAN ─────────────────────────────────────────────────────────────────────
+async function runScan() {
+  if (isSleeping || isScanning) return;
+  if (!settings.oddsKey) { addLog('No Odds API key — add in Settings','warn'); startCountdown(); return; }
+  isScanning = true;
+  document.getElementById('fab').classList.add('spinning');
+  addLog('Scanning NY books...','info');
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let allMkts = [], totalGames = 0;
+
+  // Fetch h2h, spreads, totals for each sport
+  // 3 requests per sport × 7 sports = 21 requests per scan
+  // Free tier: 500/month → ~23 scans/month → scan every few hours
+  for (const sport of ODDS_SPORTS) {
+    for (const market of ['h2h','spreads','totals']) {
+      const games = await fetchOddsSport(sport.key, market);
+      if (games.length) {
+        const mkts = parseOddsGames(games, market);
+        allMkts = allMkts.concat(mkts);
+        if (market === 'h2h') {
+          totalGames += games.length;
+          addLog(`${sport.name}: ${games.length} games`,'info');
+        }
+      }
+      await sleep(200); // small delay between calls
+    }
+  }
+
+  allArbs = detectArbs(allMkts);
+  addLog(`${totalGames} games · ${allMkts.length} markets · ${allArbs.length} arbs`, allArbs.length>0?'good':'info');
+  renderArbs();
+  document.getElementById('dot-bot').className = 'dot live';
+  isScanning = false;
+  document.getElementById('fab').classList.remove('spinning');
+  startCountdown();
+}
+
+function manualScan() {
+  if (isSleeping) { toast('Paused — tap SLEEP to resume'); return; }
+  if (countdownTimer) clearInterval(countdownTimer);
+  runScan();
+}
+function startCountdown() {
+  countdown = SCAN_INTERVAL;
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(()=>{
+    if (isSleeping) return;
+    countdown--;
+    const m=Math.floor(countdown/60),s=countdown%60;
+    document.getElementById('stat-next').textContent = m>0?`${m}m${s}s`:`${s}s`;
+    document.getElementById('scan-fill').style.width = `${(SCAN_INTERVAL-countdown)/SCAN_INTERVAL*100}%`;
+    if (countdown<=0) { clearInterval(countdownTimer); runScan(); }
+  }, 1000);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function setFilter(f,el) {
+  currentFilter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderArbs();
+}
+function renderArbs() {
+  const list = document.getElementById('arb-list');
+  const filtered = currentFilter==='all' ? allArbs : allArbs.filter(a=>a.type===currentFilter);
+  if (!filtered.length) {
+    list.innerHTML=`<div class="empty"><div class="empty-icon">${isSleeping?'🌙':'📡'}</div><div class="empty-text">${isSleeping?'PAUSED<br>TAP SLEEP TO RESUME':'NO ARBS YET<br>SCANNING EVERY 60s'}</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map((arb,i)=>renderCard(arb,i)).join('');
+}
+function renderCard(arb, idx) {
+  const bk = settings.bankroll;
+  const payout = bk / arb.impliedSum;
+  const profit = (payout - bk).toFixed(2);
+  const isKalshi = arb.type==='kalshi', isProp = arb.type==='prop';
+  const hot = arb.profitPct>=1.5, warm = arb.profitPct>=0.8;
+  const cardClass = isKalshi?'kalshi':hot?'hot':warm?'warm':'';
+  const profitClass = isKalshi?'purple':(!hot&&!warm)?'warm':'';
+  const tagClass = isKalshi?'tag-kalshi':isProp?'tag-prop':'tag-sport';
+  const tagLabel = isKalshi?'KALSHI':isProp?'PROP':'SPORT';
+  const legs = arb.legs.map((l,i)=>{
+    const dec = l.price.toFixed(3);
+    const amer = l.price>=2 ? `+${Math.round((l.price-1)*100)}` : `-${Math.round(100/(l.price-1))}`;
+    const stake = ((1/l.price)/arb.impliedSum*bk).toFixed(2);
+    return `<div class="leg">
+      <div class="leg-num">${i+1}</div>
+      <div class="leg-body">
+        <div class="leg-book">${l.book}</div>
+        <div class="leg-detail" id="ld-${idx}-${i}">Bet $${stake} on ${l.name}</div>
+        <div class="leg-odds">${dec} · ${amer}</div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="arb-card ${cardClass}">
+    <div class="arb-header" onclick="toggleCard(${idx})">
+      <div class="arb-profit ${profitClass}">+${arb.profitPct.toFixed(2)}%</div>
+      <div class="arb-meta">
+        <div class="arb-event">${arb.event}</div>
+        <div class="arb-market">${arb.label}</div>
+      </div>
+      <div class="arb-tag ${tagClass}">${tagLabel}</div>
+    </div>
+    <div class="arb-detail" id="card-${idx}">
+      <div class="action-box">
+        <div class="action-title">PLACE SIMULTANEOUSLY</div>
+        ${legs}
+        <div class="profit-line">
+          <span>Guaranteed profit on $${bk}</span>
+          <strong id="pv-${idx}">+$${profit}</strong>
+        </div>
+        <div class="bankroll-row">
+          <input type="range" min="50" max="5000" step="50" value="${bk}" oninput="updateStakes(this.value,${idx})">
+          <div class="bankroll-val" id="bv-${idx}">$${bk}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function toggleCard(idx) { const d=document.getElementById(`card-${idx}`); if(d)d.classList.toggle('open'); }
+function updateStakes(val,idx) {
+  const bk=parseFloat(val), arb=allArbs[idx];
+  document.getElementById(`bv-${idx}`).textContent='$'+bk;
+  document.getElementById(`pv-${idx}`).textContent='+$'+((bk/arb.impliedSum)-bk).toFixed(2);
+  arb.legs.forEach((l,i)=>{
+    const el=document.getElementById(`ld-${idx}-${i}`);
+    if(el) el.textContent=`Bet $${((1/l.price)/arb.impliedSum*bk).toFixed(2)} on ${l.name}`;
+  });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.id!=='nav-sleep')b.classList.remove('active')});
+  document.getElementById('screen-'+name).classList.add('active');
+  const nb=document.getElementById('nav-'+name);
+  if(nb&&nb.id!=='nav-sleep') nb.classList.add('active');
+  document.getElementById('filter-bar').style.display=name==='opps'?'flex':'none';
+  document.getElementById('fab').style.display=name==='settings'?'none':'flex';
+}
+function addLog(msg,type='info') {
+  const list=document.getElementById('log-list');
+  const t=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const e=document.createElement('div'); e.className='log-entry '+type;
+  e.innerHTML=`<span class="log-time">${t}</span><span>${msg}</span>`;
+  list.prepend(e); while(list.children.length>200)list.removeChild(list.lastChild);
+}
+let toastTmr;
+function toast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTmr); toastTmr=setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('set-tr-key').value     = settings.oddsKey;
+document.getElementById('set-min-profit').value = settings.minProfit;
+document.getElementById('set-bankroll').value   = settings.bankroll;
+document.getElementById('set-bot-url').value    = botUrl;
+if (botUrl) { startSyncPoll(); pullSleepState().then(()=>{ if(!isSleeping)runScan(); else applySleepUI(); }); }
+else { runScan(); }
+</script>
+</body>
+</html>
