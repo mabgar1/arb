@@ -9,16 +9,18 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>ArbScanner NY</title>
 <style>
-:root{--bg:#000;--surface:#0a0a0a;--border:#1c1c1e;--green:#30d158;--yellow:#ffd60a;--blue:#0a84ff;--red:#ff453a;--purple:#bf5af2;--muted:#636366;--text:#f5f5f7;--mono:'DM Mono','Courier New',monospace;--safe-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#000;--surface:#0a0a0a;--border:#1c1c1e;--green:#30d158;--yellow:#ffd60a;--blue:#0a84ff;--red:#ff453a;--muted:#636366;--text:#f5f5f7;--mono:'DM Mono','Courier New',monospace;--safe-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top))}
 .logo{font-size:14px;letter-spacing:3px;color:var(--green);font-weight:600}
 .logo span{color:var(--muted);font-weight:400}
 .status-row{display:flex;gap:10px;align-items:center}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}.dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}.dot.warn{background:var(--yellow)}.dot.err{background:var(--red)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+.dot.warn{background:var(--yellow)}.dot.err{background:var(--red)}
 .dot-label{font-size:9px;color:var(--muted);letter-spacing:1px}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .scan-bar{height:2px;background:var(--border);flex-shrink:0}
 .scan-fill{height:100%;background:var(--green);transition:width 1s linear;width:0%}
 .sleep-banner{display:none;padding:10px 16px;background:rgba(99,99,102,.12);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);letter-spacing:1.5px;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
@@ -30,24 +32,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .screen.active{display:block}
 .arb-list{padding:12px;display:flex;flex-direction:column;gap:10px}
 .arb-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.arb-card.hot{border-color:rgba(48,209,88,.4)}.arb-card.warm{border-color:rgba(255,214,10,.3)}.arb-card.kalshi{border-color:rgba(191,90,242,.3)}
+.arb-card.hot{border-color:rgba(48,209,88,.4)}.arb-card.warm{border-color:rgba(255,214,10,.3)}
 .arb-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;gap:10px}
 .arb-profit{font-size:22px;font-weight:700;color:var(--green);flex-shrink:0}
-.arb-profit.warm{color:var(--yellow)}.arb-profit.purple{color:var(--purple)}
+.arb-profit.warm{color:var(--yellow)}
 .arb-meta{flex:1;min-width:0}
 .arb-event{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arb-market{font-size:10px;color:var(--muted);letter-spacing:.5px;margin-top:3px}
 .arb-tag{font-size:9px;padding:3px 8px;border-radius:10px;letter-spacing:1px;flex-shrink:0}
 .tag-sport{background:rgba(10,132,255,.15);color:var(--blue);border:1px solid rgba(10,132,255,.3)}
-.tag-kalshi{background:rgba(191,90,242,.15);color:var(--purple);border:1px solid rgba(191,90,242,.3)}
-.tag-prop{background:rgba(255,214,10,.12);color:var(--yellow);border:1px solid rgba(255,214,10,.3)}
 .arb-detail{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
 .arb-detail.open{display:block}
 .action-box{margin-top:12px;background:rgba(48,209,88,.05);border:1px solid rgba(48,209,88,.15);border-radius:8px;padding:12px}
 .action-title{font-size:9px;letter-spacing:2px;color:var(--green);margin-bottom:10px}
 .leg{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
 .leg-num{width:20px;height:20px;border-radius:50%;background:var(--green);color:#000;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.leg-body{flex:1}.leg-book{font-size:12px;font-weight:600;color:var(--text)}.leg-detail{font-size:11px;color:var(--muted);margin-top:2px}.leg-odds{font-size:11px;color:var(--green);margin-top:2px}
+.leg-body{flex:1}
+.leg-book{font-size:12px;font-weight:600;color:var(--text)}
+.leg-detail{font-size:11px;color:var(--muted);margin-top:2px}
+.leg-odds{font-size:11px;color:var(--green);margin-top:2px}
 .profit-line{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(48,209,88,.15);font-size:11px;color:var(--muted)}
 .profit-line strong{color:var(--green);font-size:14px}
 .bankroll-row{display:flex;align-items:center;gap:10px;margin-top:10px}
@@ -57,7 +60,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .empty-icon{font-size:40px;opacity:.3}.empty-text{font-size:11px;letter-spacing:1px}
 .log-list{padding:8px 12px;display:flex;flex-direction:column;gap:2px}
 .log-entry{display:flex;gap:8px;padding:5px 8px;border-radius:6px;font-size:10px;line-height:1.5}
-.log-entry.info{color:var(--muted)}.log-entry.good{color:var(--green);background:rgba(48,209,88,.05)}.log-entry.warn{color:var(--yellow);background:rgba(255,214,10,.05)}.log-entry.err{color:var(--red);background:rgba(255,69,58,.05)}
+.log-entry.info{color:var(--muted)}.log-entry.good{color:var(--green);background:rgba(48,209,88,.05)}
+.log-entry.warn{color:var(--yellow);background:rgba(255,214,10,.05)}.log-entry.err{color:var(--red);background:rgba(255,69,58,.05)}
 .log-time{flex-shrink:0;opacity:.5}
 .settings-section{font-size:9px;letter-spacing:2px;color:var(--muted);padding:20px 16px 8px;text-transform:uppercase}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px}
@@ -67,14 +71,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .info-box{margin:0 16px 4px;padding:12px;border-radius:8px;font-size:10px;line-height:1.7}
 .info-box.blue{background:rgba(10,132,255,.06);color:var(--blue);border:1px solid rgba(10,132,255,.2)}
 .info-box.yellow{background:rgba(255,214,10,.06);color:var(--yellow);border:1px solid rgba(255,214,10,.2)}
-.info-box.purple{background:rgba(191,90,242,.06);color:var(--purple);border:1px solid rgba(191,90,242,.2)}
 .bottom-nav{display:flex;background:var(--bg);border-top:1px solid var(--border);padding-bottom:var(--safe-bottom);flex-shrink:0}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;background:none;border:none;font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--muted);cursor:pointer;gap:4px;transition:color .15s}
-.nav-btn svg{width:20px;height:20px}.nav-btn.active{color:var(--green)}.nav-btn.sleep-on{color:var(--yellow)!important}
+.nav-btn svg{width:20px;height:20px}.nav-btn.active{color:var(--green)}
+.nav-btn.sleep-on{color:var(--yellow)!important}
 .fab{position:fixed;bottom:calc(var(--safe-bottom) + 76px);right:16px;width:50px;height:50px;border-radius:50%;background:var(--green);color:#000;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(48,209,88,.4);transition:opacity .2s,transform .1s;z-index:10}
 .fab:active{transform:scale(.93)}.fab.spinning{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;top:max(60px,env(safe-area-inset-top,60px));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.12);color:var(--text);backdrop-filter:blur(20px);padding:10px 20px;border-radius:20px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100}
+.toast{position:fixed;top:max(60px,env(safe-area-inset-top,60px));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.12);color:var(--text);backdrop-filter:blur(20px);padding:10px 20px;border-radius:20px;font-size:12px;letter-spacing:.5px;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100}
 .toast.show{opacity:1}
 </style>
 </head>
@@ -93,14 +97,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   <button class="chip" onclick="setFilter('ml',this)">MONEYLINE</button>
   <button class="chip" onclick="setFilter('spread',this)">SPREAD</button>
   <button class="chip" onclick="setFilter('total',this)">TOTAL</button>
-  <button class="chip" onclick="setFilter('prop',this)">PROPS</button>
-  <button class="chip" onclick="setFilter('kalshi',this)">KALSHI</button>
 </div>
-<div class="screen active" id="screen-opps">
-  <div class="arb-list" id="arb-list">
-    <div class="empty"><div class="empty-icon">📡</div><div class="empty-text">SCANNING NY BOOKS + KALSHI<br>DraftKings · FanDuel · BetMGM<br>Caesars · BetRivers · PointsBet</div></div>
-  </div>
-</div>
+<div class="screen active" id="screen-opps"><div class="arb-list" id="arb-list">
+  <div class="empty"><div class="empty-icon">📡</div><div class="empty-text">SCANNING NY BOOKS<br>DraftKings · FanDuel · BetMGM<br>Caesars · BetRivers · PointsBet</div></div>
+</div></div>
 <div class="screen" id="screen-log"><div class="log-list" id="log-list"></div></div>
 <div class="screen" id="screen-settings">
   <div class="settings-section">Bot Connection</div>
@@ -111,14 +111,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
     <input class="settings-input" id="set-bot-url" placeholder="https://your-bot.onrender.com" style="width:100%;font-size:11px;">
   </div>
   <button class="save-btn" onclick="saveBotUrl()">CONNECT BOT</button>
-  <div class="settings-section">The Odds API</div>
-  <div class="info-box yellow">Free tier: 500 requests/month · sign up at the-odds-api.com<br>~23 full scans per month · upgrade for more</div>
+  <div class="settings-section">TheRundown API</div>
+  <div class="info-box yellow">Free tier: 20k pts/day · therundown.io<br>Starter $49/mo: all NY books + faster updates</div>
   <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
-    <div class="settings-label">Odds API Key</div>
+    <div class="settings-label">TheRundown API Key</div>
     <input class="settings-input" id="set-tr-key" placeholder="paste key here" style="width:100%;font-size:11px;">
   </div>
-  <div class="settings-section">Kalshi</div>
-  <div class="info-box purple">CFTC-regulated · fully legal in New York<br>Finds YES/NO arbs on prediction markets<br>Configure KALSHI_KEY_ID + KALSHI_PRIVATE_KEY in Render</div>
   <div class="settings-section">Scan Settings</div>
   <div class="settings-row">
     <div><div class="settings-label">Min Profit %</div><div class="settings-sublabel">ignore arbs below this</div></div>
@@ -129,8 +127,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
     <input class="settings-input" id="set-bankroll" type="number" value="500" step="50" min="50" style="width:90px;">
   </div>
   <button class="save-btn" onclick="saveSettings()">SAVE SETTINGS</button>
-  <div class="settings-section">NY Licensed Books + Kalshi</div>
-  <div class="info-box blue">Sportsbooks: DraftKings · FanDuel · BetMGM · Caesars · BetRivers · PointsBet · Resorts World · Bally Bet<br><br>Prediction: Kalshi (CFTC · NY legal)<br>Markets: Moneyline · Spread · Total O/U with exact line</div>
+  <div class="settings-section">NY Licensed Books Only</div>
+  <div class="info-box blue">DraftKings · FanDuel · BetMGM · Caesars<br>BetRivers · PointsBet · Resorts World · Bally Bet<br><br>No offshore books. No prediction markets.<br>100% NY State legal.</div>
   <div style="height:20px;"></div>
 </div>
 <button class="fab" id="fab" onclick="manualScan()">&#x21BA;</button>
@@ -150,26 +148,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   </button>
 </div>
 <script>
-// ── STATE ────────────────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────────────
 let settings = loadSettings();
 let isSleeping = false, botUrl = localStorage.getItem('botUrl')||'';
 let syncTimer = null, countdownTimer = null, countdown = 0;
 const SCAN_INTERVAL = 60;
 let currentFilter = 'all', allArbs = [], isScanning = false;
 
-// ── SETTINGS ─────────────────────────────────────────────────────────────────
 function loadSettings() {
   return {
-    oddsKey:   localStorage.getItem('oddsKey')   || '',
+    trKey:     localStorage.getItem('trKey')     || '',
     minProfit: parseFloat(localStorage.getItem('minProfit') || '0.5'),
     bankroll:  parseFloat(localStorage.getItem('bankroll')  || '500'),
   };
 }
 function saveSettings() {
-  settings.oddsKey   = document.getElementById('set-tr-key').value.trim();
+  settings.trKey     = document.getElementById('set-tr-key').value.trim();
   settings.minProfit = parseFloat(document.getElementById('set-min-profit').value) || 0.5;
   settings.bankroll  = parseFloat(document.getElementById('set-bankroll').value) || 500;
-  localStorage.setItem('oddsKey', settings.oddsKey);
+  localStorage.setItem('trKey', settings.trKey);
   localStorage.setItem('minProfit', settings.minProfit);
   localStorage.setItem('bankroll', settings.bankroll);
   toast('Settings saved'); showScreen('opps'); runScan();
@@ -178,16 +175,14 @@ function saveBotUrl() {
   const url = document.getElementById('set-bot-url').value.trim().replace(/\/$/,'');
   if (!url) { toast('Enter your Render URL'); return; }
   botUrl = url; localStorage.setItem('botUrl', botUrl);
-  toast('Bot connected!'); addLog('Bot: '+botUrl, 'info');
+  toast('Bot connected!'); addLog('Bot: '+botUrl,'info');
   startSyncPoll(); pullSleepState();
 }
 
 // ── SLEEP ─────────────────────────────────────────────────────────────────────
 function applySleepUI() {
-  const btn = document.getElementById('nav-sleep');
-  const svg = document.getElementById('sleep-svg');
-  const banner = document.getElementById('sleep-banner');
-  const fab = document.getElementById('fab');
+  const btn=document.getElementById('nav-sleep'), svg=document.getElementById('sleep-svg');
+  const banner=document.getElementById('sleep-banner'), fab=document.getElementById('fab');
   if (isSleeping) {
     btn.classList.add('sleep-on');
     svg.style.fill='#ffd60a'; svg.style.stroke='#ffd60a';
@@ -204,114 +199,123 @@ function applySleepUI() {
   }
 }
 async function toggleSleep() {
-  isSleeping = !isSleeping; applySleepUI();
+  isSleeping=!isSleeping; applySleepUI();
   if (isSleeping) { toast('🌙 Paused'); addLog('Paused','warn'); if(countdownTimer)clearInterval(countdownTimer); }
   else { toast('▶ Resumed'); addLog('Resumed','info'); runScan(); }
   if (botUrl) {
-    try { await fetch(botUrl+'/'+(isSleeping?'sleep':'wake'), {method:'POST'}); }
+    try { await fetch(botUrl+'/'+(isSleeping?'sleep':'wake'),{method:'POST'}); }
     catch(e) { addLog('Bot sync error','warn'); }
   }
 }
 async function pullSleepState() {
   if (!botUrl) return;
   try {
-    const r = await fetch(botUrl+'/status');
+    const r=await fetch(botUrl+'/status');
     if (!r.ok) { document.getElementById('dot-bot').className='dot err'; return; }
-    const d = await r.json();
+    const d=await r.json();
     document.getElementById('dot-bot').className='dot live';
-    if (d.sleeping !== isSleeping) { isSleeping=d.sleeping; applySleepUI(); if(!isSleeping)runScan(); }
+    if (d.sleeping!==isSleeping) { isSleeping=d.sleeping; applySleepUI(); if(!isSleeping)runScan(); }
   } catch(e) { document.getElementById('dot-bot').className='dot warn'; }
 }
 function startSyncPoll() {
   if (syncTimer) clearInterval(syncTimer);
   if (!botUrl) return;
-  syncTimer = setInterval(pullSleepState, 8000);
+  syncTimer=setInterval(pullSleepState,8000);
 }
 
-// ── THE ODDS API ─────────────────────────────────────────────────────────────
-// Free tier: 500 requests/month — enough for ~16 scans/day
-// NY-licensed books only
-const NY_BOOKS = ['draftkings','fanduel','betmgm','caesars','pointsbet','betrivers'];
-const ODDS_SPORTS = [
-  {key:'basketball_nba',      name:'NBA'},
-  {key:'americanfootball_nfl',name:'NFL'},
-  {key:'baseball_mlb',        name:'MLB'},
-  {key:'icehockey_nhl',       name:'NHL'},
-  {key:'basketball_ncaab',    name:'NCAAB'},
-  {key:'americanfootball_ncaaf',name:'NCAAF'},
-  {key:'mma_mixed_martial_arts',name:'MMA'},
-];
-const BOOK_DISPLAY = {
-  draftkings:'DraftKings', fanduel:'FanDuel', betmgm:'BetMGM',
-  caesars:'Caesars', pointsbet:'PointsBet', betrivers:'BetRivers'
-};
+// ── THERUNDOWN API ────────────────────────────────────────────────────────────
+// Real response structure: event.markets[].participants[].lines[].prices.{aff_id}.price
+const NY_BOOKS = {3:'DraftKings',24:'FanDuel',10:'BetMGM',22:'Caesars',35:'PointsBet',26:'BetRivers',68:'Resorts World',94:'Bally Bet'};
+const NY_AFF_IDS = Object.keys(NY_BOOKS).map(Number);
+const TR_SPORTS = [{id:4,name:'NBA'},{id:1,name:'NFL'},{id:3,name:'MLB'},{id:6,name:'NHL'},{id:5,name:'NCAAB'},{id:9,name:'MMA'}];
 
-async function fetchOddsSport(sportKey, market) {
-  if (!settings.oddsKey) return [];
-  const books = NY_BOOKS.join(',');
-  const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${settings.oddsKey}&regions=us&markets=${market}&bookmakers=${books}&oddsFormat=american`;
+function toDecimal(v) {
+  if (!v || v===0.0001) return 0;
+  const p=parseFloat(v);
+  if (Math.abs(p)>=100) return p>0?(p/100)+1:(100/Math.abs(p))+1;
+  return p>1?p:0;
+}
+
+async function fetchTRSport(sportId, date) {
+  if (!settings.trKey) return [];
+  const url=`https://therundown.io/api/v2/sports/${sportId}/events/${date}?key=${settings.trKey}&market_ids=1,2,3&affiliate_ids=${NY_AFF_IDS.join(',')}`;
   try {
-    const r = await fetch(url);
-    // Log remaining quota from headers
-    const remaining = r.headers.get('x-requests-remaining');
-    const used      = r.headers.get('x-requests-used');
-    if (remaining !== null) addLog(`Odds API: ${remaining} requests remaining (${used} used)`,'info');
-    if (r.status === 401) { addLog('Bad Odds API key — check Settings','err'); return []; }
-    if (r.status === 422) { addLog(`${sportKey} not available`,'info'); return []; }
-    if (!r.ok) { addLog(`Odds API error ${r.status}`,'warn'); return []; }
-    return await r.json();
-  } catch(e) {
-    addLog('Fetch error: '+e.message,'warn'); return [];
-  }
+    const r=await fetch(url);
+    if (r.status===401||r.status===403) { addLog('Bad TR key — check Settings','err'); return []; }
+    if (r.status===429) { addLog('Rate limit — slowing down','warn'); return []; }
+    if (!r.ok) { addLog(`TR error ${r.status}`,'warn'); return []; }
+    return (await r.json()).events||[];
+  } catch(e) { addLog('Fetch error: '+e.message,'warn'); return []; }
 }
 
-function parseOddsGames(games, market) {
-  // marketMap key: "EventName||MarketLabel"
-  const marketMap = {};
+function parseEvents(events) {
+  // marketMap[eventName||label] = { event, label, type, outcomes:{ outcomeName:{ bookName: price } } }
+  const marketMap={};
 
-  for (const game of games) {
-    const home = game.home_team;
-    const away = game.away_team;
-    const eventName = `${away} @ ${home}`;
+  for (const ev of events) {
+    const teams=ev.teams||[];
+    if (teams.length<2) continue;
+    const away=teams.find(t=>t.is_away)?.name||teams[1].name;
+    const home=teams.find(t=>t.is_home)?.name||teams[0].name;
+    const eventName=`${away} @ ${home}`;
 
-    for (const bm of game.bookmakers || []) {
-      const book = BOOK_DISPLAY[bm.key] || bm.key;
+    // Skip finished games
+    if ((ev.score?.event_status||'').includes('FINAL')) continue;
 
-      for (const mkt of bm.markets || []) {
-        if (mkt.key !== market) continue;
+    for (const mkt of ev.markets||[]) {
+      const mktId=mkt.market_id;
+      const type=mktId===1?'ml':mktId===2?'spread':mktId===3?'total':'prop';
 
-        for (const outcome of mkt.outcomes || []) {
-          const name  = outcome.name;  // team name, "Over", or "Under"
-          const price = outcome.price; // American odds integer
-          const dec   = price > 0 ? (price/100)+1 : (100/Math.abs(price))+1;
-          if (dec <= 1) continue;
+      for (const participant of mkt.participants||[]) {
+        const participantName=participant.name||participant.abbreviation||'?';
 
-          let label, outcomeName, type;
+        for (const line of participant.lines||[]) {
+          const prices=line.prices||{};
 
-          if (mkt.key === 'h2h') {
-            label = 'Moneyline';
-            outcomeName = name;
-            type = 'ml';
-          } else if (mkt.key === 'spreads') {
-            const point = outcome.point;
-            const sign  = point > 0 ? '+' : '';
-            label = `Spread: ${name} ${sign}${point}`;
-            outcomeName = `${name} ${sign}${point}`;
-            type = 'spread';
-          } else if (mkt.key === 'totals') {
-            const point = outcome.point;
-            // name is "Over" or "Under", point is the line e.g. 224.5
-            label = `Total ${point}`;
-            outcomeName = `${name} ${point}`; // e.g. "Over 224.5"
-            type = 'total';
+          for (const [affIdStr, priceData] of Object.entries(prices)) {
+            const affId=parseInt(affIdStr);
+            if (!NY_AFF_IDS.includes(affId)) continue;
+            const book=NY_BOOKS[affId];
+            const price=toDecimal(priceData.price);
+            if (!price||price<=1) continue;
+
+            if (mktId===1) {
+              // Moneyline — participant name is team name
+              const key=`${eventName}||Moneyline`;
+              if (!marketMap[key]) marketMap[key]={event:eventName,label:'Moneyline',type:'ml',outcomes:{}};
+              const cur=marketMap[key].outcomes[participantName]?.[book]||0;
+              if (!marketMap[key].outcomes[participantName]) marketMap[key].outcomes[participantName]={};
+              marketMap[key].outcomes[participantName][book]=Math.max(price,cur);
+
+            } else if (mktId===2) {
+              // Spread — include line value in label
+              const spread=priceData.spread||line.spread||line.handicap||priceData.handicap||'';
+              const sign=spread&&parseFloat(spread)>0?'+':'';
+              const label=spread?`Spread: ${participantName} ${sign}${spread}`:`Spread: ${participantName}`;
+              const key=`${eventName}||${label}`;
+              if (!marketMap[key]) marketMap[key]={event:eventName,label,type:'spread',outcomes:{cover:{}}};
+              const cur=marketMap[key].outcomes.cover[book]||0;
+              marketMap[key].outcomes.cover[book]=Math.max(price,cur);
+
+            } else if (mktId===3) {
+              // Total O/U — participant name should be Over or Under
+              // Line number can be anywhere — check exhaustively
+              const lineNum=priceData.total||priceData.line||priceData.point||priceData.handicap||
+                            line.total||line.line||line.point||line.handicap||
+                            participant.total||participant.line||participant.point||
+                            mkt.total||mkt.total_line||mkt.line||'';
+              const side=participantName.toLowerCase().includes('over')?'Over':
+                         participantName.toLowerCase().includes('under')?'Under':
+                         participantName;
+              const sideLabel=lineNum?`${side} ${lineNum}`:side;
+              const mktLabel=lineNum?`Total ${lineNum}`:'Total';
+              const key=`${eventName}||${mktLabel}`;
+              if (!marketMap[key]) marketMap[key]={event:eventName,label:mktLabel,type:'total',outcomes:{}};
+              const cur=marketMap[key].outcomes[sideLabel]?.[book]||0;
+              if (!marketMap[key].outcomes[sideLabel]) marketMap[key].outcomes[sideLabel]={};
+              marketMap[key].outcomes[sideLabel][book]=Math.max(price,cur);
+            }
           }
-
-          const key = `${eventName}||${label}`;
-          if (!marketMap[key]) marketMap[key] = {event:eventName, label, type, outcomes:{}};
-          marketMap[key].outcomes[outcomeName] = marketMap[key].outcomes[outcomeName] || {};
-          // Keep best price per book per outcome
-          const existing = marketMap[key].outcomes[outcomeName][book] || 0;
-          if (dec > existing) marketMap[key].outcomes[outcomeName][book] = dec;
         }
       }
     }
@@ -319,63 +323,57 @@ function parseOddsGames(games, market) {
   return Object.values(marketMap);
 }
 
+// ── ARB DETECTION — REQUIRES DIFFERENT BOOKS ──────────────────────────────────
 function detectArbs(markets) {
-  const arbs = [];
+  const arbs=[];
   for (const mkt of markets) {
-    const outcomes = Object.entries(mkt.outcomes);
-    if (outcomes.length < 2) continue;
-    // Best price per outcome across all books
-    const best = outcomes.map(([name, books]) => {
-      const [bestBook, bestPrice] = Object.entries(books).reduce((a,b)=>b[1]>a[1]?b:a, ['',0]);
-      return {name, book:bestBook, price:bestPrice};
-    }).filter(o => o.price > 1);
-    if (best.length < 2) continue;
-    // REQUIRE different books — same book on both sides is not an arb
-    const uniqueBooks = new Set(best.map(l=>l.book));
-    if (uniqueBooks.size < 2) continue;
-    const impliedSum = best.reduce((s,o) => s + 1/o.price, 0);
-    if (impliedSum >= 1 || impliedSum <= 0) continue;
-    const profitPct = (1/impliedSum - 1) * 100;
-    if (profitPct < settings.minProfit) continue;
-    arbs.push({...mkt, profitPct, legs:best, impliedSum});
+    const outcomes=Object.entries(mkt.outcomes);
+    if (outcomes.length<2) continue;
+    const best=outcomes.map(([name,books])=>{
+      const [bk,bp]=Object.entries(books).reduce((a,b)=>b[1]>a[1]?b:a,['',0]);
+      return {name,book:bk,price:bp};
+    }).filter(o=>o.price>1);
+    if (best.length<2) continue;
+    // REQUIRE different books — same book both sides = not a real arb
+    const uniqueBooks=new Set(best.map(l=>l.book));
+    if (uniqueBooks.size<2) continue;
+    const impliedSum=best.reduce((s,o)=>s+1/o.price,0);
+    if (impliedSum>=1||impliedSum<=0) continue;
+    const profitPct=(1/impliedSum-1)*100;
+    if (profitPct<settings.minProfit) continue;
+    arbs.push({...mkt,profitPct,legs:best,impliedSum});
   }
-  return arbs.sort((a,b) => b.profitPct - a.profitPct);
+  return arbs.sort((a,b)=>b.profitPct-a.profitPct);
 }
 
-// ── SCAN ─────────────────────────────────────────────────────────────────────
+// ── SCAN — RATE LIMITED ───────────────────────────────────────────────────────
 async function runScan() {
-  if (isSleeping || isScanning) return;
-  if (!settings.oddsKey) { addLog('No Odds API key — add in Settings','warn'); startCountdown(); return; }
-  isScanning = true;
+  if (isSleeping||isScanning) return;
+  if (!settings.trKey) { addLog('No TR key — add in Settings','warn'); startCountdown(); return; }
+  isScanning=true;
   document.getElementById('fab').classList.add('spinning');
   addLog('Scanning NY books...','info');
 
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  let allMkts = [], totalGames = 0;
+  const today=new Date().toISOString().split('T')[0];
+  let allMkts=[], totalEvts=0;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-  // Fetch h2h, spreads, totals for each sport
-  // 3 requests per sport × 7 sports = 21 requests per scan
-  // Free tier: 500/month → ~23 scans/month → scan every few hours
-  for (const sport of ODDS_SPORTS) {
-    for (const market of ['h2h','spreads','totals']) {
-      const games = await fetchOddsSport(sport.key, market);
-      if (games.length) {
-        const mkts = parseOddsGames(games, market);
-        allMkts = allMkts.concat(mkts);
-        if (market === 'h2h') {
-          totalGames += games.length;
-          addLog(`${sport.name}: ${games.length} games`,'info');
-        }
-      }
-      await sleep(200); // small delay between calls
+  for (const sport of TR_SPORTS) {
+    const evts=await fetchTRSport(sport.id,today);
+    if (evts.length) {
+      const mkts=parseEvents(evts);
+      allMkts=allMkts.concat(mkts);
+      totalEvts+=evts.length;
+      addLog(`${sport.name}: ${evts.length} games → ${mkts.length} markets`,'info');
     }
+    await sleep(2000); // 2s between calls — free tier rate limit
   }
 
-  allArbs = detectArbs(allMkts);
-  addLog(`${totalGames} games · ${allMkts.length} markets · ${allArbs.length} arbs`, allArbs.length>0?'good':'info');
+  allArbs=detectArbs(allMkts);
+  addLog(`${totalEvts} events · ${allMkts.length} markets · ${allArbs.length} arbs`, allArbs.length>0?'good':'info');
   renderArbs();
-  document.getElementById('dot-bot').className = 'dot live';
-  isScanning = false;
+  document.getElementById('dot-bot').className='dot live';
+  isScanning=false;
   document.getElementById('fab').classList.remove('spinning');
   startCountdown();
 }
@@ -386,16 +384,16 @@ function manualScan() {
   runScan();
 }
 function startCountdown() {
-  countdown = SCAN_INTERVAL;
+  countdown=SCAN_INTERVAL;
   if (countdownTimer) clearInterval(countdownTimer);
-  countdownTimer = setInterval(()=>{
+  countdownTimer=setInterval(()=>{
     if (isSleeping) return;
     countdown--;
     const m=Math.floor(countdown/60),s=countdown%60;
-    document.getElementById('stat-next').textContent = m>0?`${m}m${s}s`:`${s}s`;
-    document.getElementById('scan-fill').style.width = `${(SCAN_INTERVAL-countdown)/SCAN_INTERVAL*100}%`;
+    document.getElementById('stat-next').textContent=m>0?`${m}m${s}s`:`${s}s`;
+    document.getElementById('scan-fill').style.width=`${(SCAN_INTERVAL-countdown)/SCAN_INTERVAL*100}%`;
     if (countdown<=0) { clearInterval(countdownTimer); runScan(); }
-  }, 1000);
+  },1000);
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -406,28 +404,26 @@ function setFilter(f,el) {
   renderArbs();
 }
 function renderArbs() {
-  const list = document.getElementById('arb-list');
-  const filtered = currentFilter==='all' ? allArbs : allArbs.filter(a=>a.type===currentFilter);
+  const list=document.getElementById('arb-list');
+  const filtered=currentFilter==='all'?allArbs:allArbs.filter(a=>a.type===currentFilter);
   if (!filtered.length) {
     list.innerHTML=`<div class="empty"><div class="empty-icon">${isSleeping?'🌙':'📡'}</div><div class="empty-text">${isSleeping?'PAUSED<br>TAP SLEEP TO RESUME':'NO ARBS YET<br>SCANNING EVERY 60s'}</div></div>`;
     return;
   }
-  list.innerHTML = filtered.map((arb,i)=>renderCard(arb,i)).join('');
+  list.innerHTML=filtered.map((arb,i)=>renderCard(arb,i)).join('');
 }
-function renderCard(arb, idx) {
-  const bk = settings.bankroll;
-  const payout = bk / arb.impliedSum;
-  const profit = (payout - bk).toFixed(2);
-  const isKalshi = arb.type==='kalshi', isProp = arb.type==='prop';
-  const hot = arb.profitPct>=1.5, warm = arb.profitPct>=0.8;
-  const cardClass = isKalshi?'kalshi':hot?'hot':warm?'warm':'';
-  const profitClass = isKalshi?'purple':(!hot&&!warm)?'warm':'';
-  const tagClass = isKalshi?'tag-kalshi':isProp?'tag-prop':'tag-sport';
-  const tagLabel = isKalshi?'KALSHI':isProp?'PROP':'SPORT';
-  const legs = arb.legs.map((l,i)=>{
-    const dec = l.price.toFixed(3);
-    const amer = l.price>=2 ? `+${Math.round((l.price-1)*100)}` : `-${Math.round(100/(l.price-1))}`;
-    const stake = ((1/l.price)/arb.impliedSum*bk).toFixed(2);
+function renderCard(arb,idx) {
+  const bk=settings.bankroll, payout=bk/arb.impliedSum, profit=(payout-bk).toFixed(2);
+  const isKalshi=arb.type==='kalshi', isProp=arb.type==='prop';
+  const hot=arb.profitPct>=1.5, warm=arb.profitPct>=0.8;
+  const cardClass=isKalshi?'kalshi':hot?'hot':warm?'warm':'';
+  const profitClass=isKalshi?'purple':(!hot&&warm)?'warm':'';
+  const tagClass=isKalshi?'tag-kalshi':isProp?'tag-prop':'tag-sport';
+  const tagLabel=isKalshi?'KALSHI':isProp?'PROP':'SPORT';
+  const legs=arb.legs.map((l,i)=>{
+    const dec=l.price.toFixed(3);
+    const amer=l.price>=2?`+${Math.round((l.price-1)*100)}`:`-${Math.round(100/(l.price-1))}`;
+    const stake=((1/l.price)/arb.impliedSum*bk).toFixed(2);
     return `<div class="leg">
       <div class="leg-num">${i+1}</div>
       <div class="leg-body">
@@ -476,7 +472,7 @@ function updateStakes(val,idx) {
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.id!=='nav-sleep')b.classList.remove('active')});
+  document.querySelectorAll('.nav-btn').forEach(b=>{ if(b.id!=='nav-sleep') b.classList.remove('active'); });
   document.getElementById('screen-'+name).classList.add('active');
   const nb=document.getElementById('nav-'+name);
   if(nb&&nb.id!=='nav-sleep') nb.classList.add('active');
@@ -497,10 +493,10 @@ function toast(msg) {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
-document.getElementById('set-tr-key').value     = settings.oddsKey;
-document.getElementById('set-min-profit').value = settings.minProfit;
-document.getElementById('set-bankroll').value   = settings.bankroll;
-document.getElementById('set-bot-url').value    = botUrl;
+document.getElementById('set-tr-key').value=settings.trKey;
+document.getElementById('set-min-profit').value=settings.minProfit;
+document.getElementById('set-bankroll').value=settings.bankroll;
+document.getElementById('set-bot-url').value=botUrl;
 if (botUrl) { startSyncPoll(); pullSleepState().then(()=>{ if(!isSleeping)runScan(); else applySleepUI(); }); }
 else { runScan(); }
 </script>
