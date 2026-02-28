@@ -88,8 +88,12 @@ def send_sms(message: str):
 
 # ─── STAKE CALCULATOR ─────────────────────────────────────────────────────────
 def calc_stakes(outcomes, bankroll):
-    implied     = [1/o["price"] for o in outcomes]
+    implied     = [1/o["price"] for o in outcomes if o.get("price", 0) > 0]
+    if not implied:
+        return {"stakes": [], "payout": 0, "profit": 0}
     implied_sum = sum(implied)
+    if implied_sum == 0:
+        return {"stakes": [], "payout": 0, "profit": 0}
     payout      = bankroll / implied_sum
     stakes      = [{"label":o["label"],"book":o["book"],
                     "stake":(implied[i]/implied_sum)*bankroll}
@@ -314,8 +318,12 @@ def find_prediction_arbs(markets_a, markets_b, min_similarity=0.4):
             if sim < min_similarity:
                 continue
             for yes_src, no_src in [(a,b),(b,a)]:
-                s = yes_src["yes_price"] + no_src["no_price"]
-                if s < 1:
+                yp = yes_src["yes_price"]
+                np_ = no_src["no_price"]
+                if yp <= 0 or np_ <= 0:
+                    continue
+                s = yp + np_
+                if s < 1 and s > 0:
                     profit = (1/s - 1) * 100
                     if MIN_PROFIT_PCT < profit <= 15:
                         key = f"{yes_src['source']}:{yes_src['event'][:30]}|{no_src['source']}:{no_src['event'][:30]}"
@@ -419,8 +427,11 @@ def find_sportsbook_arbs(games):
         for t in teams:
             bd, bb = max(((o[t], b) for b, o in valid.items()), key=lambda x: x[0])
             best[t] = {"price": bd, "book": bb}
-        impl_sum = sum(1/v["price"] for v in best.values())
-        if impl_sum >= 1:
+        prices   = [v["price"] for v in best.values() if v.get("price", 0) > 0]
+        if len(prices) < 2:
+            continue
+        impl_sum = sum(1/p for p in prices)
+        if impl_sum >= 1 or impl_sum == 0:
             continue
         profit = (1/impl_sum - 1) * 100
         if profit > 15 or profit <= MIN_PROFIT_PCT:
@@ -470,6 +481,8 @@ def find_cross_arbs(pred_markets, sb_games):
             for i, team in enumerate(teams):
                 sb_price = best_sb[team]["price"]
                 sb_book  = best_sb[team]["book"]
+                if sb_price <= 0:
+                    continue
                 sb_prob  = 1 / sb_price  # implied prob
 
                 # If pred market YES is cheaper than sportsbook implied prob
@@ -482,9 +495,11 @@ def find_cross_arbs(pred_markets, sb_games):
                 other_team = teams[1-i]
                 if other_team in best_sb:
                     other_sb_price = best_sb[other_team]["price"]
+                    if other_sb_price <= 0 or pm_yes <= 0:
+                        continue
                     # Combined: pm_yes_price + 1/other_sb_price < 1?
                     s = pm_yes + (1/other_sb_price)
-                    if s < 1:
+                    if s < 1 and s > 0:
                         profit = (1/s - 1) * 100
                         if MIN_PROFIT_PCT < profit <= 15:
                             key = f"cross:{pm['event'][:25]}:{team}"
