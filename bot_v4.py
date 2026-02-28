@@ -95,7 +95,9 @@ def send_sms(message: str):
         msg["From"] = GMAIL_ADDRESS
         msg["To"]   = f"{YOUR_PHONE_NUMBER}@vtext.com"
         msg["Subject"] = ""
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+        with smtplib.SMTP("smtp.gmail.com", 587) as s:
+            s.ehlo()
+            s.starttls()
             s.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
             s.sendmail(GMAIL_ADDRESS, f"{YOUR_PHONE_NUMBER}@vtext.com", msg.as_string())
         log.info(f"SMS → {message[:60]}")
