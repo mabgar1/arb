@@ -1,5 +1,5 @@
 """
-ArbScanner Bot v3
+ArbScanner Bot v4
 - Scans every 5 minutes (was 30)
 - 10 sportsbooks (was 5)
 - Smarter Kalshi↔Polymarket matching using normalized team/event names
@@ -8,7 +8,8 @@ ArbScanner Bot v3
 - Cooldown reduced to 30min (was 4hr) so re-alerts if arb persists
 """
 
-import os, time, logging, requests, smtplib, base64, re
+import os, time, logging, requests, smtplib, base64, re, threading
+from flask import Flask, jsonify, request as flask_request
 from email.mime.text import MIMEText
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -26,6 +27,45 @@ KALSHI_PRIVATE_KEY = os.environ.get("KALSHI_PRIVATE_KEY", "")
 MIN_PROFIT_PCT     = float(os.environ.get("MIN_PROFIT_PCT", "0.3"))  # ignore tiny arbs
 SCAN_INTERVAL_SEC  = int(os.environ.get("SCAN_INTERVAL_SEC", "300"))  # 5 min
 ALERT_COOLDOWN_SEC = int(os.environ.get("ALERT_COOLDOWN_SEC", "1800")) # 30 min re-alert
+
+# ─── SLEEP STATE ──────────────────────────────────────────────────────────────
+_sleeping = False          # controlled via HTTP endpoints
+_sleep_lock = threading.Lock()
+
+def is_sleeping():
+    with _sleep_lock:
+        return _sleeping
+
+def set_sleeping(val: bool):
+    global _sleeping
+    with _sleep_lock:
+        _sleeping = val
+    log.info(f"Sleep mode {'ON — scanning paused' if val else 'OFF — scanning resumed'}")
+
+# ─── HTTP CONTROL SERVER ───────────────────────────────────────────────────────
+app = Flask(__name__)
+
+@app.route("/")
+def health():
+    return jsonify({"status": "ok", "sleeping": is_sleeping(), "version": "v4"})
+
+@app.route("/sleep", methods=["POST"])
+def sleep_on():
+    set_sleeping(True)
+    return jsonify({"sleeping": True})
+
+@app.route("/wake", methods=["POST"])
+def sleep_off():
+    set_sleeping(False)
+    return jsonify({"sleeping": False})
+
+@app.route("/status")
+def status():
+    return jsonify({"sleeping": is_sleeping()})
+
+def run_http():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -545,14 +585,25 @@ def run_scan():
     log.info(f"═══ Next scan in {SCAN_INTERVAL_SEC}s ═══\n")
 
 def main():
-    log.info("ArbScanner v3 starting up...")
+    log.info("ArbScanner v4 starting up...")
     log.info(f"Scan interval: {SCAN_INTERVAL_SEC}s | Min profit: {MIN_PROFIT_PCT}% | Cooldown: {ALERT_COOLDOWN_SEC}s")
-    send_sms(f"ArbBot v3 live! Scanning every {SCAN_INTERVAL_SEC//60}min across Kalshi+Polymarket+{len(SPORTS)} sports+{len(BOOKS)} books")
+
+    # Start HTTP control server in background thread
+    http_thread = threading.Thread(target=run_http, daemon=True)
+    http_thread.start()
+    log.info(f"HTTP control server started on port {os.environ.get('PORT', 8080)}")
+    log.info("Endpoints: GET /status  POST /sleep  POST /wake")
+
+    send_sms(f"ArbBot v4 live! Scanning every {SCAN_INTERVAL_SEC//60}min. Reply STOP anytime.")
+
     while True:
-        try:
-            run_scan()
-        except Exception as e:
-            log.error(f"Scan crashed: {e}")
+        if is_sleeping():
+            log.info("Sleep mode active — skipping scan")
+        else:
+            try:
+                run_scan()
+            except Exception as e:
+                log.error(f"Scan crashed: {e}")
         time.sleep(SCAN_INTERVAL_SEC)
 
 if __name__ == "__main__":
