@@ -90,19 +90,8 @@ def run_flask():
 
 # ─── SMS ──────────────────────────────────────────────────────────────────────
 def send_sms(message: str):
-    try:
-        msg = MIMEText(message[:300])
-        msg["From"] = GMAIL_ADDRESS
-        msg["To"]   = f"{YOUR_PHONE_NUMBER}@vtext.com"
-        msg["Subject"] = ""
-        with smtplib.SMTP("smtp.gmail.com", 587) as s:
-            s.ehlo()
-            s.starttls()
-            s.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-            s.sendmail(GMAIL_ADDRESS, f"{YOUR_PHONE_NUMBER}@vtext.com", msg.as_string())
-        log.info(f"SMS → {message[:60]}")
-    except Exception as e:
-        log.error(f"SMS failed: {e}")
+    # Render free tier blocks outbound SMTP — log only
+    log.info(f"ALERT (SMS disabled on free tier): {message[:120]}")
 
 # ─── KALSHI ───────────────────────────────────────────────────────────────────
 KALSHI_BASE = "https://trading-api.kalshi.com/trade-api/v2"
@@ -413,19 +402,9 @@ def full_snapshot():
     log.info(f"Snapshot done — {len(_event_cache)} events cached")
 
 def delta_loop():
-    while True:
-        time.sleep(DELTA_INTERVAL_SEC)
-        if is_sleeping() or not TR_API_KEY: continue
-        updated = 0
-        for sport_id in TR_SPORTS:
-            try: updated += max(poll_delta(sport_id), 0)
-            except Exception as e: log.error(f"Delta {sport_id}: {e}")
-        if updated > 0:
-            log.info(f"Delta: {updated} events updated")
-            with _kalshi_lock: kalshi = list(_kalshi_cache)
-            arbs = all_arbs(kalshi)
-            new  = [a for a in arbs if is_new(a)]
-            if new: alert(new)
+    # /delta endpoint not available on free tier — skip
+    log.info("Delta polling disabled (free tier)")
+    return
 
 def snapshot_loop():
     while True:
